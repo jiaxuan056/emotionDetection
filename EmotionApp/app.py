@@ -58,7 +58,8 @@ selected_image_path = os.path.join(category_path, selected_image_name)
 
 # Show selected image
 image = Image.open(selected_image_path)
-st.image(image, caption=f"Selected Image: {selected_image_name}", use_column_width=True)
+# Show selected image with smaller width
+st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)  # 300 px width
 
 # -------------------------
 # 4️⃣ Prediction Function
