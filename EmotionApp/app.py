@@ -15,6 +15,7 @@ st.set_page_config(page_title="Emotion Detection", layout="wide")
 st.title("😊 Emotion Detection System")
 
 DATASET_PATH = "dataset"
+
 emotion_labels = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutral"]
 
 # -------------------------
