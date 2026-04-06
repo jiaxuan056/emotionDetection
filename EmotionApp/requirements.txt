@@ -6,4 +6,4 @@ tensorflow
 scikit-image
 joblib
 gdown
-sklearn
+scikit-learn
