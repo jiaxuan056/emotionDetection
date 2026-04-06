@@ -4,7 +4,7 @@ seaborn
 scikit-learn
 pandas
 numpy
-opencv-python
+opencv-python--headless
 scikit-image
 Pillow
 tensorflow
