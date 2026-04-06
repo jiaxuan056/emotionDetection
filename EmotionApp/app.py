@@ -13,10 +13,10 @@ from collections import deque
 # 1️⃣ Download Models from Google Drive
 # -------------------------
 CNN_FILE_ID = "1QVCR7tt7NFmZvMYkphjH3eOsVaaDgD7w"
-SVM_FILE_ID = "1c94crk9dwSyabPI1neObqLZeNJTbo5_M"
+SVM_FILE_ID = "1GWQR8acH4uycRAAupBAOVtLMnEtzBrfK"
 
 CNN_FILE_NAME = "best_CNNModel.h5"
-SVM_FILE_NAME = "svm_hog_lbp_model.joblib"
+SVM_FILE_NAME = "svm_emotion_model.joblib"
 
 @st.cache_resource(show_spinner=True)
 def load_models():
