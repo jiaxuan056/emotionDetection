@@ -76,7 +76,7 @@ def preprocess_image_svm(img_path):
     
     # HOG features
     features, _ = hog(resized, pixels_per_cell=(8, 8),
-                      cells_per_block=(2, 2), visualize=True, multichannel=False)
+                      cells_per_block=(2, 2), visualize=True, channel_axis=None)
     return features.reshape(1, -1)
 
 # -------------------------
