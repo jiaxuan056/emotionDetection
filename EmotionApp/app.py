@@ -22,7 +22,10 @@ SVM_MODEL_NAME = "svm_emotion_model.pkl"
 SCALER_NAME = "scaler.pkl"
 ENCODER_NAME = "label_encoder.pkl"
 
-EMOTION_LABELS = ['surprise', 'fear', 'disgust', 'happy', 'sad', 'angry', 'neutral']
+IMG_SIZE_CNN = 100
+IMG_SIZE_SVM = 100
+
+EMOTION_LABELS = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutral"]
 
 @st.cache_resource(show_spinner=True)
 def load_models():
@@ -31,14 +34,10 @@ def load_models():
         gdown.download(f"https://drive.google.com/uc?id={CNN_FILE_ID}", CNN_FILE_NAME, quiet=False)
 
     # Download SVM files
-    if not os.path.exists(SVM_MODEL_NAME):
-        gdown.download(f"https://drive.google.com/uc?id={SVM_MODEL_ID}", SVM_MODEL_NAME, quiet=False)
-
-    if not os.path.exists(SCALER_NAME):
-        gdown.download(f"https://drive.google.com/uc?id={SCALER_ID}", SCALER_NAME, quiet=False)
-
-    if not os.path.exists(ENCODER_NAME):
-        gdown.download(f"https://drive.google.com/uc?id={ENCODER_ID}", ENCODER_NAME, quiet=False)
+    for file_id, file_name in zip([SVM_MODEL_ID, SCALER_ID, ENCODER_ID],
+                                  [SVM_MODEL_NAME, SCALER_NAME, ENCODER_NAME]):
+        if not os.path.exists(file_name):
+            gdown.download(f"https://drive.google.com/uc?id={file_id}", file_name, quiet=False)
 
     # Load models
     cnn_model = load_model(CNN_FILE_NAME)
@@ -54,19 +53,12 @@ st.success("✅ Models loaded successfully!")
 # -------------------------
 # 2️⃣ App Layout
 # -------------------------
-st.title("😊 Emotion Detection")
-st.markdown("Detect emotion using CNN or HOG + SVM")
+st.title("😊 Emotion Detection Dashboard")
+st.markdown(
+    "Upload or select an image from the dataset and detect emotion using CNN or HOG + SVM."
+)
 
-model_choice = st.selectbox("Select Model", ["CNN", "SVM"])
-
-# -------------------------
-# 3️⃣ Image Selection
-# -------------------------
 DATASET_PATH = "EmotionApp/dataset"
-
-IMG_SIZE_CNN = 100
-IMG_SIZE_SVM = 100
-
 emotion_category = st.selectbox("Select Emotion Folder", os.listdir(DATASET_PATH))
 category_path = os.path.join(DATASET_PATH, emotion_category)
 
@@ -75,12 +67,10 @@ selected_image_name = st.selectbox("Select Image", images_list)
 selected_image_path = os.path.join(category_path, selected_image_name)
 
 image = Image.open(selected_image_path)
-st.image(image, caption=f"{selected_image_name}", width=300)
-
-st.divider()
+st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)
 
 # -------------------------
-# 4️⃣ Preprocessing Functions
+# 3️⃣ Preprocessing Functions
 # -------------------------
 def preprocess_cnn(img_path):
     img = cv2.imread(img_path)
@@ -97,49 +87,52 @@ def preprocess_svm(img_path):
                    cells_per_block=(2, 2),
                    orientations=9,
                    block_norm='L2-Hys')
-    return scaler.transform([features])
+    features_scaled = scaler.transform([features])
+    return features_scaled
 
 # -------------------------
-# 5️⃣ Prediction & Display
+# 4️⃣ Prediction & Display
 # -------------------------
 if st.button("🚀 Predict Emotion"):
-    
+
     st.subheader("📌 Prediction Result")
 
-    if model_choice == "CNN":
-        input_data = preprocess_cnn(selected_image_path)
-        pred = cnn_model.predict(input_data, verbose=0)[0]
-        idx = np.argmax(pred) + 1        # 1-based label
-        label = EMOTION_LABELS[idx - 1] # map to emotion name
-        confidence = pred[idx - 1] * 100
+    # Prepare two columns for comparison
+    col1, col2 = st.columns(2)
 
-        st.success(f"Predicted Emotion: {label} ({confidence:.2f}%)")
+    # -------------------------
+    # CNN Prediction
+    # -------------------------
+    with col1:
+        st.markdown("### 🧠 CNN Model Prediction")
+        input_cnn = preprocess_cnn(selected_image_path)
+        pred_cnn = cnn_model.predict(input_cnn, verbose=0)[0]
+        idx_cnn = np.argmax(pred_cnn)
+        label_cnn = EMOTION_LABELS[idx_cnn]
+        confidence_cnn = pred_cnn[idx_cnn] * 100
+        st.success(f"Predicted Emotion: {label_cnn} ({confidence_cnn:.2f}%)")
 
-        # METRICS
-        colA, colB = st.columns(2)
-        colA.metric("Confidence (%)", f"{confidence:.2f}")
-        colB.metric("Other Emotions (%)", f"{100 - confidence:.2f}")
+        st.write("#### Emotion Probabilities (CNN)")
+        for i, em in enumerate(EMOTION_LABELS):
+            st.metric(em, f"{pred_cnn[i]*100:.2f}%")
+            st.progress(int(pred_cnn[i]*100))
 
-        # PROGRESS BAR
-        st.write("### 📊 Confidence Visualization")
-        st.progress(int(confidence))
-        st.caption(f"{label} Confidence")
+    # -------------------------
+    # SVM Prediction
+    # -------------------------
+    with col2:
+        st.markdown("### 🧩 SVM Model Prediction")
+        input_svm = preprocess_svm(selected_image_path)
+        pred_svm_idx = svm_model.predict(input_svm)[0]
+        pred_svm_prob = svm_model.predict_proba(input_svm)[0]
+        label_svm = EMOTION_LABELS[pred_svm_idx]
+        confidence_svm = pred_svm_prob[pred_svm_idx] * 100
+        st.success(f"Predicted Emotion: {label_svm} ({confidence_svm:.2f}%)")
 
-    else:
-        features = preprocess_svm(selected_image_path)
-        pred_idx = svm_model.predict(features)[0]
-        pred_prob = svm_model.predict_proba(features)[0]
-        label = EMOTION_LABELS[pred_idx]
-        confidence = pred_prob[pred_idx] * 100
+        st.write("#### Emotion Probabilities (SVM)")
+        for i, em in enumerate(EMOTION_LABELS):
+            st.metric(em, f"{pred_svm_prob[i]*100:.2f}%")
+            st.progress(int(pred_svm_prob[i]*100))
 
-        st.success(f"Predicted Emotion: {label} ({confidence:.2f}%)")
-
-        # METRICS
-        colA, colB = st.columns(2)
-        colA.metric("Confidence (%)", f"{confidence:.2f}")
-        colB.metric("Other Emotions (%)", f"{100 - confidence:.2f}")
-
-        # PROGRESS BAR
-        st.write("### 📊 Confidence Visualization")
-        st.progress(int(confidence))
-        st.caption(f"{label} Confidence")
+    st.divider()
+    st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
