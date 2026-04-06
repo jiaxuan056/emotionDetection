@@ -15,7 +15,6 @@ st.set_page_config(page_title="Emotion Detection", layout="wide")
 st.title("😊 Emotion Detection System")
 
 DATASET_PATH = "dataset"
-
 emotion_labels = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutral"]
 
 # -------------------------
@@ -30,7 +29,7 @@ def load_models():
 cnn_model, svm_model = load_models()
 
 # -------------------------
-# SVM FUNCTIONS (IMPORTANT)
+# SVM FUNCTIONS
 # -------------------------
 def preprocess_rgb(rgb):
     gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
@@ -60,9 +59,7 @@ def extract_features(gray):
                   pixels_per_cell=(8, 8),
                   cells_per_block=(2, 2),
                   block_norm='L2-Hys')
-
     lbp_vec = lbp_spatial_histogram(gray)
-
     return np.concatenate([hog_vec, lbp_vec])
 
 def predict_svm(model_dict, image):
@@ -72,12 +69,10 @@ def predict_svm(model_dict, image):
 
     gray = preprocess_rgb(image)
     feat = extract_features(gray).reshape(1, -1)
-
     feat = scaler.transform(feat)
     feat = pca.transform(feat)
 
     prob = svc.predict_proba(feat)[0]
-
     return prob
 
 # -------------------------
@@ -86,12 +81,9 @@ def predict_svm(model_dict, image):
 def get_random_image():
     label = random.choice(emotion_labels)
     folder = os.path.join(DATASET_PATH, label)
-
     img_name = random.choice(os.listdir(folder))
     img_path = os.path.join(folder, img_name)
-
     image = Image.open(img_path).convert("RGB")
-
     return image, label
 
 # -------------------------
@@ -101,14 +93,12 @@ st.sidebar.header("⚙️ Settings")
 model_choice = st.sidebar.selectbox("Select Model", ("CNN", "SVM"))
 
 # -------------------------
-# TAB 1: PREDICTION
+# TAB 1: RANDOM PREDICTION
 # -------------------------
 st.header("🔍 Random Emotion Prediction")
 
 if st.button("🎲 Generate Random Image"):
-
     image, true_label = get_random_image()
-
     st.image(image, caption=f"Actual Emotion: {true_label}", use_column_width=True)
 
     # Convert to OpenCV
@@ -122,9 +112,7 @@ if st.button("🎲 Generate Random Image"):
         face = cv2.resize(img, (100, 100))
         face = face / 255.0
         face = np.expand_dims(face, axis=0)
-
         pred = cnn_model.predict(face, verbose=0)[0]
-
     else:
         pred = predict_svm(svm_model, img)
 
@@ -136,7 +124,6 @@ if st.button("🎲 Generate Random Image"):
     confidence = pred[idx] * 100
 
     st.subheader("📌 Prediction Result")
-
     if pred_label == true_label:
         st.success(f"✅ Correct! {pred_label} ({confidence:.2f}%)")
     else:
@@ -146,7 +133,6 @@ if st.button("🎲 Generate Random Image"):
     # PROBABILITY BREAKDOWN
     # -------------------------
     st.write("### 📊 Confidence Breakdown")
-
     for i, emo in enumerate(emotion_labels):
         st.progress(int(pred[i] * 100))
         st.caption(f"{emo}: {pred[i]*100:.2f}%")
