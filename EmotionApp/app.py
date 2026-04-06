@@ -13,9 +13,9 @@ from skimage.feature import hog
 # 1️⃣ Download & Load Models
 # -------------------------
 CNN_FILE_ID = "1QVCR7tt7NFmZvMYkphjH3eOsVaaDgD7w"
-SVM_MODEL_ID = "YOUR_SVM_MODEL_ID"
-SCALER_ID = "YOUR_SCALER_ID"
-ENCODER_ID = "YOUR_ENCODER_ID"
+SVM_MODEL_ID = "1jpJ2HwviM6PX91RHX81GjQynu_Pqy-Cm"
+SCALER_ID = "1llZiJ8z-uDJE7L9UB6xv3nqe4irKHPBN"
+ENCODER_ID = "1AWE9JbAl-Z7DtrwDV4oCRWOtjvOstFMU"
 
 CNN_FILE_NAME = "best_CNNModel.h5"
 SVM_MODEL_NAME = "svm_emotion_model.pkl"
