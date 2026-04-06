@@ -29,19 +29,12 @@ def load_models():
     # Load CNN
     cnn_model = load_model(CNN_FILE_NAME)
     
-    # Load SVM dict
-    svm_dict = joblib.load(SVM_FILE_NAME)
-    scaler = svm_dict['scaler']
-    pca = svm_dict['pca']
-    svm_model = svm_dict['svc']       # ← Actual SVC object
-    svm_classes = svm_dict['classes']
-    svm_img_size = svm_dict['img_size']
+    # Load SVM (just the SVC object)
+    svm_model = joblib.load(SVM_FILE_NAME)
     
-    return cnn_model, (scaler, pca, svm_model, svm_classes, svm_img_size)
+    return cnn_model, svm_model
 
-# Load models
-cnn_model, svm_info = load_models()
-scaler, pca, svm_model, svm_classes, SVM_IMG_SIZE = svm_info
+cnn_model, svm_model = load_models()
 st.success("✅ Models loaded successfully!")
 
 # -------------------------
@@ -53,14 +46,14 @@ st.markdown("Select an image from the dataset and detect emotion using CNN or SV
 model_choice = st.selectbox("Select Model", ["CNN", "SVM"])
 
 # -------------------------
-# 3️⃣ Image Selection
+# 3️⃣ Image Selection from Dataset
 # -------------------------
 DATASET_PATH = "EmotionApp/dataset"  # replace with your dataset path
 emotion_labels = ["Surprise", "Fear", "Disgust", "Happy", "Sad", "Angry", "Neutral"]
 
-IMG_SIZE = 100 if model_choice == "CNN" else SVM_IMG_SIZE
+IMG_SIZE = 100 if model_choice == "CNN" else 128  # For SVM, default HOG size
 
-# Let user select emotion category
+# Let user select emotion folder
 emotion_category = st.selectbox("Select Emotion Folder", os.listdir(DATASET_PATH))
 category_path = os.path.join(DATASET_PATH, emotion_category)
 
@@ -85,7 +78,7 @@ def preprocess_image_cnn(img_path):
 def preprocess_image_svm(img_path):
     img = cv2.imread(img_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, (SVM_IMG_SIZE, SVM_IMG_SIZE))
+    resized = cv2.resize(gray, (IMG_SIZE, IMG_SIZE))
     
     # HOG features
     features, _ = hog(resized,
@@ -94,13 +87,7 @@ def preprocess_image_svm(img_path):
                       orientations=9,
                       visualize=True,
                       channel_axis=None)
-    features = features.reshape(1, -1)
-    
-    # Scale + PCA
-    features = scaler.transform(features)
-    features = pca.transform(features)
-    
-    return features
+    return features.reshape(1, -1)
 
 # -------------------------
 # 5️⃣ Prediction Button
@@ -116,5 +103,5 @@ if st.button("Predict Emotion"):
     else:
         input_features = preprocess_image_svm(selected_image_path)
         pred_idx = svm_model.predict(input_features)[0]
-        label = svm_classes[pred_idx]
+        label = emotion_labels[pred_idx]
         st.success(f"Predicted Emotion: {label}")
