@@ -103,17 +103,25 @@ def preprocess_svm(img_path):
 # -------------------------
 # 5️⃣ Prediction
 # -------------------------
+EMOTION_LABELS = ['surprise', 'fear', 'disgust', 'happy', 'sad', 'angry', 'neutral']
+
 if st.button("Predict Emotion"):
     if model_choice == "CNN":
         input_data = preprocess_cnn(selected_image_path)
         pred = cnn_model.predict(input_data, verbose=0)[0]
         idx = np.argmax(pred)
-        label = label_encoder.inverse_transform([idx])[0]
+        label = EMOTION_LABELS[idx]
         confidence = pred[idx] * 100
         st.success(f"Predicted: {label} ({confidence:.2f}%)")
 
-    else:
+    else:  # SVM
         features = preprocess_svm(selected_image_path)
-        pred = svm_model.predict(features)
-        label = label_encoder.inverse_transform(pred)[0]
-        st.success(f"Predicted: {label}")
+        pred_idx = svm_model.predict(features)[0]
+        label = label_encoder.inverse_transform([pred_idx])[0]
+
+        # Get confidence from predict_proba
+        if hasattr(svm_model, "predict_proba"):
+            confidence = np.max(svm_model.predict_proba(features)) * 100
+            st.success(f"Predicted: {label} ({confidence:.2f}%)")
+        else:
+            st.success(f"Predicted: {label}")
