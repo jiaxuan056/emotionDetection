@@ -22,6 +22,8 @@ SVM_MODEL_NAME = "svm_emotion_model.pkl"
 SCALER_NAME = "scaler.pkl"
 ENCODER_NAME = "label_encoder.pkl"
 
+EMOTION_LABELS = ['surprise', 'fear', 'disgust', 'happy', 'sad', 'angry', 'neutral']
+
 @st.cache_resource(show_spinner=True)
 def load_models():
     # Download CNN
@@ -38,10 +40,8 @@ def load_models():
     if not os.path.exists(ENCODER_NAME):
         gdown.download(f"https://drive.google.com/uc?id={ENCODER_ID}", ENCODER_NAME, quiet=False)
 
-    # Load CNN
+    # Load models
     cnn_model = load_model(CNN_FILE_NAME)
-
-    # Load SVM components
     svm_model = joblib.load(SVM_MODEL_NAME)
     scaler = joblib.load(SCALER_NAME)
     label_encoder = joblib.load(ENCODER_NAME)
@@ -77,8 +77,10 @@ selected_image_path = os.path.join(category_path, selected_image_name)
 image = Image.open(selected_image_path)
 st.image(image, caption=f"{selected_image_name}", width=300)
 
+st.divider()
+
 # -------------------------
-# 4️⃣ Preprocessing
+# 4️⃣ Preprocessing Functions
 # -------------------------
 def preprocess_cnn(img_path):
     img = cv2.imread(img_path)
@@ -90,38 +92,54 @@ def preprocess_svm(img_path):
     img = cv2.imread(img_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
-
     features = hog(resized,
                    pixels_per_cell=(8, 8),
                    cells_per_block=(2, 2),
                    orientations=9,
                    block_norm='L2-Hys')
-
-    features = scaler.transform([features])
-    return features
+    return scaler.transform([features])
 
 # -------------------------
-# 5️⃣ Prediction
+# 5️⃣ Prediction & Display
 # -------------------------
-EMOTION_LABELS = ['surprise', 'fear', 'disgust', 'happy', 'sad', 'angry', 'neutral']
+if st.button("🚀 Predict Emotion"):
+    
+    st.subheader("📌 Prediction Result")
 
-if st.button("Predict Emotion"):
     if model_choice == "CNN":
         input_data = preprocess_cnn(selected_image_path)
         pred = cnn_model.predict(input_data, verbose=0)[0]
-        idx = np.argmax(pred)
-        label = EMOTION_LABELS[idx]
-        confidence = pred[idx] * 100
-        st.success(f"Predicted: {label} ({confidence:.2f}%)")
+        idx = np.argmax(pred) + 1        # 1-based label
+        label = EMOTION_LABELS[idx - 1] # map to emotion name
+        confidence = pred[idx - 1] * 100
 
-    else:  # SVM
+        st.success(f"Predicted Emotion: {label} ({confidence:.2f}%)")
+
+        # METRICS
+        colA, colB = st.columns(2)
+        colA.metric("Confidence (%)", f"{confidence:.2f}")
+        colB.metric("Other Emotions (%)", f"{100 - confidence:.2f}")
+
+        # PROGRESS BAR
+        st.write("### 📊 Confidence Visualization")
+        st.progress(int(confidence))
+        st.caption(f"{label} Confidence")
+
+    else:
         features = preprocess_svm(selected_image_path)
         pred_idx = svm_model.predict(features)[0]
-        label = label_encoder.inverse_transform([pred_idx])[0]
+        pred_prob = svm_model.predict_proba(features)[0]
+        label = EMOTION_LABELS[pred_idx]
+        confidence = pred_prob[pred_idx] * 100
 
-        # Get confidence from predict_proba
-        if hasattr(svm_model, "predict_proba"):
-            confidence = np.max(svm_model.predict_proba(features)) * 100
-            st.success(f"Predicted: {label} ({confidence:.2f}%)")
-        else:
-            st.success(f"Predicted: {label}")
+        st.success(f"Predicted Emotion: {label} ({confidence:.2f}%)")
+
+        # METRICS
+        colA, colB = st.columns(2)
+        colA.metric("Confidence (%)", f"{confidence:.2f}")
+        colB.metric("Other Emotions (%)", f"{100 - confidence:.2f}")
+
+        # PROGRESS BAR
+        st.write("### 📊 Confidence Visualization")
+        st.progress(int(confidence))
+        st.caption(f"{label} Confidence")
