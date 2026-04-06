@@ -141,96 +141,78 @@ with tab1:
 # -------------------------
 # 4️⃣ Tab 2: Analysis & Reports (CNN + SVM)
 # -------------------------
+# Mapping numeric folder to labels
+NUM_FOLDER_TO_LABEL = {
+    "1": "surprise",
+    "2": "fear",
+    "3": "disgust",
+    "4": "happy",
+    "5": "sad",
+    "6": "angry",
+    "7": "neutral"
+}
+
+# Google Drive path
+BASE = "Mydrive/AI Assignment/trainKaggle"  # replace with actual mounted path if needed
+
 with tab2:
     st.subheader("📊 Model Performance & Confusion Matrices")
 
-    # ✅ Download test dataset from Google Drive
-    DRIVE_FOLDER_ID = "1uIHJ8vWI3KDMChvWnFZK3ZfxtAV_Y8Tf"  # Replace with your trainKaggle folder ID
-    DOWNLOAD_PATH = "trainKaggle"
-
-    if not os.path.exists(DOWNLOAD_PATH):
-        st.info("Downloading test images from Google Drive...")
-        import subprocess
-        subprocess.run([
-            "gdown", f"https://drive.google.com/drive/folders/{DRIVE_FOLDER_ID}",
-            "--folder", "-O", DOWNLOAD_PATH
-        ])
-        st.success("✅ Download completed!")
-
-    # Load test dataset
     test_images, test_labels = [], []
-    BASE = DOWNLOAD_PATH
 
-    for idx, label in enumerate(EMOTION_LABELS):
-        folder = os.path.join(BASE, label)
-        if not os.path.exists(folder):
+    for folder_name, label_name in NUM_FOLDER_TO_LABEL.items():
+        folder_path = os.path.join(BASE, folder_name)
+        if not os.path.exists(folder_path):
+            st.warning(f"Folder {folder_path} not found!")
             continue
-        for img_file in os.listdir(folder):
-            if img_file.lower().endswith(('.png','.jpg','.jpeg')):
-                img_path = os.path.join(folder, img_file)
+        for img_file in os.listdir(folder_path):
+            if img_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                img_path = os.path.join(folder_path, img_file)
                 test_images.append(img_path)
-                test_labels.append(idx)
+                test_labels.append(EMOTION_LABELS.index(label_name))
 
-    st.write(f"Total test images loaded: {len(test_images)}")
-    y_true = np.array(test_labels)
+    st.write(f"Total images loaded for evaluation: {len(test_images)}")
 
-    # -------------------------
-    # SVM Predictions
-    # -------------------------
-    X_svm = []
-    for img_path in test_images:
-        img = cv2.imread(img_path)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
-        features = hog(resized, pixels_per_cell=(8,8), cells_per_block=(2,2),
-                       orientations=9, block_norm='L2-Hys')
-        X_svm.append(features)
-    X_svm = scaler.transform(X_svm)
+    if len(test_images) == 0:
+        st.warning("⚠️ No images found. Check your folder structure!")
+    else:
+        y_true = np.array(test_labels)
 
-    y_pred_svm = svm_model.predict(X_svm)
-    acc_svm = accuracy_score(y_true, y_pred_svm)
-    st.metric("SVM Test Accuracy", f"{acc_svm*100:.2f}%")
+        # ---------------- CNN Predictions ----------------
+        X_cnn = np.array([preprocess_cnn(p)[0] for p in test_images])
+        y_pred_cnn_probs = cnn_model.predict(X_cnn, verbose=0)
+        y_pred_cnn = np.argmax(y_pred_cnn_probs, axis=1)
+        acc_cnn = accuracy_score(y_true, y_pred_cnn)
+        st.metric("CNN Accuracy", f"{acc_cnn*100:.2f}%")
 
-    fig_svm, ax_svm = plt.subplots(figsize=(8,6))
-    sns.heatmap(confusion_matrix(y_true, y_pred_svm),
-                annot=True, fmt='d', cmap='Blues',
-                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax_svm)
-    ax_svm.set_xlabel("Predicted")
-    ax_svm.set_ylabel("True")
-    ax_svm.set_title("SVM Confusion Matrix")
-    st.pyplot(fig_svm)
+        conf_mat_cnn = confusion_matrix(y_true, y_pred_cnn)
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.heatmap(conf_mat_cnn, annot=True, fmt='d', cmap='Blues',
+                    xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+        ax.set_title("CNN Confusion Matrix")
+        st.pyplot(fig)
 
-    st.write("#### SVM Classification Report")
-    report_svm = classification_report(y_true, y_pred_svm, target_names=EMOTION_LABELS, output_dict=True)
-    st.json(report_svm)
+        # ---------------- SVM Predictions ----------------
+        X_svm = []
+        for img_path in test_images:
+            img = cv2.imread(img_path)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
+            features = hog(resized, pixels_per_cell=(8,8), cells_per_block=(2,2),
+                           orientations=9, block_norm='L2-Hys')
+            X_svm.append(features)
+        X_svm = scaler.transform(X_svm)
+        y_pred_svm = svm_model.predict(X_svm)
+        acc_svm = accuracy_score(y_true, y_pred_svm)
+        st.metric("SVM Accuracy", f"{acc_svm*100:.2f}%")
 
-    # -------------------------
-    # CNN Predictions
-    # -------------------------
-    X_cnn = []
-    for img_path in test_images:
-        img = cv2.imread(img_path)
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        resized = cv2.resize(rgb, (IMG_SIZE_CNN, IMG_SIZE_CNN))
-        X_cnn.append(resized.astype(np.float32)/255.0)
-    X_cnn = np.array(X_cnn)
-
-    y_pred_cnn_probs = cnn_model.predict(X_cnn, verbose=0)
-    y_pred_cnn = np.argmax(y_pred_cnn_probs, axis=1)
-    acc_cnn = accuracy_score(y_true, y_pred_cnn)
-    st.metric("CNN Test Accuracy", f"{acc_cnn*100:.2f}%")
-
-    fig_cnn, ax_cnn = plt.subplots(figsize=(8,6))
-    sns.heatmap(confusion_matrix(y_true, y_pred_cnn),
-                annot=True, fmt='d', cmap='Oranges',
-                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax_cnn)
-    ax_cnn.set_xlabel("Predicted")
-    ax_cnn.set_ylabel("True")
-    ax_cnn.set_title("CNN Confusion Matrix")
-    st.pyplot(fig_cnn)
-
-    st.write("#### CNN Classification Report")
-    report_cnn = classification_report(y_true, y_pred_cnn, target_names=EMOTION_LABELS, output_dict=True)
-    st.json(report_cnn)
-
-    st.info("💡 Both CNN and SVM models are evaluated on the test set. Compare accuracy, confusion matrices, and classification reports.")
+        conf_mat_svm = confusion_matrix(y_true, y_pred_svm)
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.heatmap(conf_mat_svm, annot=True, fmt='d', cmap='Greens',
+                    xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+        ax.set_title("SVM Confusion Matrix")
+        st.pyplot(fig)
