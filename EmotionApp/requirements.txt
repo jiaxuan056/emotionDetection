@@ -1,9 +1,12 @@
 streamlit
-opencv-python-headless
+matplotlib
+seaborn
+scikit-learn
+pandas
 numpy
+opencv-python
+scikit-image
 Pillow
 tensorflow
-scikit-image
 joblib
 gdown
-scikit-learn
