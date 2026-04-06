@@ -197,5 +197,3 @@ with tab2:
     st.json(report)
 
     st.info("💡 This tab shows aggregated metrics and plots for all test images.")
-
-for the image to do the confusion matrix i have the image at my google drive which is mydrive/AI Assignment/trainKaggle
