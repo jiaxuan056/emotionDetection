@@ -10,11 +10,9 @@ from PIL import Image
 from skimage.feature import hog
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 
 # -------------------------
-# 1️⃣ Model & Dataset Setup
+# 1️⃣ Download & Load Models
 # -------------------------
 CNN_FILE_ID = "1QVCR7tt7NFmZvMYkphjH3eOsVaaDgD7w"
 SVM_MODEL_ID = "1jpJ2HwviM6PX91RHX81GjQynu_Pqy-Cm"
@@ -28,9 +26,8 @@ ENCODER_NAME = "label_encoder.pkl"
 
 IMG_SIZE_CNN = 100
 IMG_SIZE_SVM = 100
-EMOTION_LABELS = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutral"]
 
-DATASET_PATH = "EmotionApp/dataset"
+EMOTION_LABELS = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutral"]
 
 @st.cache_resource(show_spinner=True)
 def load_models():
@@ -49,33 +46,41 @@ def load_models():
     svm_model = joblib.load(SVM_MODEL_NAME)
     scaler = joblib.load(SCALER_NAME)
     label_encoder = joblib.load(ENCODER_NAME)
+
     return cnn_model, svm_model, scaler, label_encoder
 
 cnn_model, svm_model, scaler, label_encoder = load_models()
 st.success("✅ Models loaded successfully!")
 
 # -------------------------
-# 2️⃣ App Layout Tabs
+# 2️⃣ App Layout
 # -------------------------
-tab1, tab2 = st.tabs(["🔍 Predict Emotion", "📊 Model Reports & Graphs"])
+st.title("😊 Emotion Detection Dashboard")
+st.markdown(
+    "Upload or select an image from the dataset and detect emotion using CNN or HOG + SVM."
+)
+
+# Tabs for UI
+tab1, tab2 = st.tabs(["🖼️ Predict Emotion", "📊 Analysis & Reports"])
+
+DATASET_PATH = "EmotionApp/dataset"
 
 # -------------------------
-# 3️⃣ Tab 1: Single Image Prediction
+# 3️⃣ Tab 1: Prediction
 # -------------------------
 with tab1:
-    st.title("😊 Emotion Detection Dashboard")
-    st.markdown("Upload or select an image from the dataset to predict emotion using CNN or SVM.")
-
-    # Image selection
+    st.subheader("Select Image for Prediction")
     emotion_category = st.selectbox("Select Emotion Folder", os.listdir(DATASET_PATH))
     category_path = os.path.join(DATASET_PATH, emotion_category)
+
     images_list = [f for f in os.listdir(category_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
     selected_image_name = st.selectbox("Select Image", images_list)
     selected_image_path = os.path.join(category_path, selected_image_name)
+
     image = Image.open(selected_image_path)
     st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)
 
-    # Preprocessing
+    # Preprocessing functions
     def preprocess_cnn(img_path):
         img = cv2.imread(img_path)
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -94,34 +99,37 @@ with tab1:
         features_scaled = scaler.transform([features])
         return features_scaled
 
-    # Prediction
     if st.button("🚀 Predict Emotion"):
+
         st.subheader("📌 Prediction Result")
+
         col1, col2 = st.columns(2)
 
-        # CNN
+        # CNN Prediction
         with col1:
-            st.markdown("### 🧠 CNN Model")
+            st.markdown("### 🧠 CNN Model Prediction")
             input_cnn = preprocess_cnn(selected_image_path)
             pred_cnn = cnn_model.predict(input_cnn, verbose=0)[0]
             idx_cnn = np.argmax(pred_cnn)
             label_cnn = EMOTION_LABELS[idx_cnn]
             confidence_cnn = pred_cnn[idx_cnn] * 100
             st.success(f"Predicted Emotion: {label_cnn} ({confidence_cnn:.2f}%)")
+
             st.write("#### Emotion Probabilities (CNN)")
             for i, em in enumerate(EMOTION_LABELS):
                 st.metric(em, f"{pred_cnn[i]*100:.2f}%")
                 st.progress(int(pred_cnn[i]*100))
 
-        # SVM
+        # SVM Prediction
         with col2:
-            st.markdown("### 🧩 SVM Model")
+            st.markdown("### 🧩 SVM Model Prediction")
             input_svm = preprocess_svm(selected_image_path)
             pred_svm_idx = svm_model.predict(input_svm)[0]
             pred_svm_prob = svm_model.predict_proba(input_svm)[0]
             label_svm = EMOTION_LABELS[pred_svm_idx]
             confidence_svm = pred_svm_prob[pred_svm_idx] * 100
             st.success(f"Predicted Emotion: {label_svm} ({confidence_svm:.2f}%)")
+
             st.write("#### Emotion Probabilities (SVM)")
             for i, em in enumerate(EMOTION_LABELS):
                 st.metric(em, f"{pred_svm_prob[i]*100:.2f}%")
@@ -131,82 +139,61 @@ with tab1:
         st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
 
 # -------------------------
-# 4️⃣ Tab 2: Reports & Graphs
+# 4️⃣ Tab 2: Analysis & Reports
 # -------------------------
 with tab2:
-    st.markdown("### 📊 Model Reports & Graphs")
+    st.subheader("📊 Model Performance & Confusion Matrices")
 
-    # Load test set predictions if precomputed
-    # For demonstration purposes, we assume these files exist:
-    # 'cnn_test_predictions.npz' and 'svm_test_predictions.npz'
-    if os.path.exists("cnn_test_predictions.npz") and os.path.exists("svm_test_predictions.npz"):
-        cnn_data = np.load("cnn_test_predictions.npz")
-        X_test_cnn = cnn_data['X_test']
-        y_test_enc_cnn = cnn_data['y_test']
-        y_pred_cnn = cnn_data['y_pred']
+    # Load test dataset for demo purposes
+    # (Replace these paths with your actual test set)
+    BASE = "EmotionApp/dataset"
+    test_images, test_labels = [], []
 
-        svm_data = np.load("svm_test_predictions.npz")
-        X_test_svm = svm_data['X_test']
-        y_test_enc_svm = svm_data['y_test']
-        y_pred_svm = svm_data['y_pred']
+    for idx, label in enumerate(EMOTION_LABELS):
+        folder = os.path.join(BASE, label)
+        if not os.path.exists(folder):
+            continue
+        for img_file in os.listdir(folder):
+            if img_file.lower().endswith(('.png','.jpg','.jpeg')):
+                img_path = os.path.join(folder, img_file)
+                test_images.append(img_path)
+                test_labels.append(idx)
 
-        # Confusion matrices
-        st.subheader("Confusion Matrices")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**CNN Confusion Matrix**")
-            cm_cnn = confusion_matrix(y_test_enc_cnn, y_pred_cnn)
-            fig, ax = plt.subplots(figsize=(6,5))
-            sns.heatmap(cm_cnn, annot=True, fmt='d', cmap='Blues', xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("True")
-            st.pyplot(fig)
+    st.write(f"Total test images loaded: {len(test_images)}")
 
-        with col2:
-            st.markdown("**SVM Confusion Matrix**")
-            cm_svm = confusion_matrix(y_test_enc_svm, y_pred_svm)
-            fig, ax = plt.subplots(figsize=(6,5))
-            sns.heatmap(cm_svm, annot=True, fmt='d', cmap='Greens', xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("True")
-            st.pyplot(fig)
+    # Function to get SVM predictions for all test images
+    X_svm = []
+    for img_path in test_images:
+        img = cv2.imread(img_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
+        features = hog(resized, pixels_per_cell=(8,8), cells_per_block=(2,2),
+                       orientations=9, block_norm='L2-Hys')
+        X_svm.append(features)
+    X_svm = scaler.transform(X_svm)
+    y_true = np.array(test_labels)
 
-        # Classification reports
-        st.subheader("Classification Reports")
-        st.markdown("**CNN Report**")
-        st.text(classification_report(y_test_enc_cnn, y_pred_cnn, target_names=EMOTION_LABELS))
-        st.markdown("**SVM Report**")
-        st.text(classification_report(y_test_enc_svm, y_pred_svm, target_names=EMOTION_LABELS))
+    y_pred_svm = svm_model.predict(X_svm)
 
-        # Accuracy metrics
-        st.subheader("Accuracy Comparison")
-        acc_cnn = accuracy_score(y_test_enc_cnn, y_pred_cnn)
-        acc_svm = accuracy_score(y_test_enc_svm, y_pred_svm)
-        st.metric("CNN Accuracy", f"{acc_cnn*100:.2f}%")
-        st.metric("SVM Accuracy", f"{acc_svm*100:.2f}%")
+    # Confusion Matrix
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 
-        # Emotion distribution
-        st.subheader("Emotion Distribution in Predictions")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**CNN Predictions**")
-            cnn_counts = pd.Series([EMOTION_LABELS[i] for i in y_pred_cnn]).value_counts()
-            fig, ax = plt.subplots(figsize=(6,4))
-            sns.barplot(x=cnn_counts.index, y=cnn_counts.values, palette="Blues", ax=ax)
-            ax.set_ylabel("Count")
-            ax.set_xlabel("Emotion")
-            st.pyplot(fig)
+    acc = accuracy_score(y_true, y_pred_svm)
+    st.metric("SVM Test Accuracy", f"{acc*100:.2f}%")
 
-        with col2:
-            st.markdown("**SVM Predictions**")
-            svm_counts = pd.Series([EMOTION_LABELS[i] for i in y_pred_svm]).value_counts()
-            fig, ax = plt.subplots(figsize=(6,4))
-            sns.barplot(x=svm_counts.index, y=svm_counts.values, palette="Greens", ax=ax)
-            ax.set_ylabel("Count")
-            ax.set_xlabel("Emotion")
-            st.pyplot(fig)
+    conf_mat = confusion_matrix(y_true, y_pred_svm)
+    fig, ax = plt.subplots(figsize=(8,6))
+    sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues',
+                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
+    ax.set_title("SVM Confusion Matrix")
+    st.pyplot(fig)
 
-    else:
-        st.warning("Test prediction data not found. Please compute CNN & SVM test predictions first.")
+    st.write("#### Classification Report")
+    report = classification_report(y_true, y_pred_svm, target_names=EMOTION_LABELS, output_dict=True)
+    st.json(report)
 
-st.info("💡 Tab 2 summarizes model performance: confusion matrices, classification reports, accuracy, and predicted emotion distributions.")
+    st.info("💡 This tab shows aggregated metrics and plots for all test images.")
