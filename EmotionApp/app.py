@@ -139,15 +139,27 @@ with tab1:
         st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
 
 # -------------------------
-# 4️⃣ Tab 2: Analysis & Reports
+# 4️⃣ Tab 2: Analysis & Reports (CNN + SVM)
 # -------------------------
 with tab2:
     st.subheader("📊 Model Performance & Confusion Matrices")
 
-    # Load test dataset for demo purposes
-    # (Replace these paths with your actual test set)
-    BASE = "EmotionApp/dataset"
+    # ✅ Download test dataset from Google Drive
+    DRIVE_FOLDER_ID = "1uIHJ8vWI3KDMChvWnFZK3ZfxtAV_Y8Tf"  # Replace with your trainKaggle folder ID
+    DOWNLOAD_PATH = "trainKaggle"
+
+    if not os.path.exists(DOWNLOAD_PATH):
+        st.info("Downloading test images from Google Drive...")
+        import subprocess
+        subprocess.run([
+            "gdown", f"https://drive.google.com/drive/folders/{DRIVE_FOLDER_ID}",
+            "--folder", "-O", DOWNLOAD_PATH
+        ])
+        st.success("✅ Download completed!")
+
+    # Load test dataset
     test_images, test_labels = [], []
+    BASE = DOWNLOAD_PATH
 
     for idx, label in enumerate(EMOTION_LABELS):
         folder = os.path.join(BASE, label)
@@ -160,8 +172,11 @@ with tab2:
                 test_labels.append(idx)
 
     st.write(f"Total test images loaded: {len(test_images)}")
+    y_true = np.array(test_labels)
 
-    # Function to get SVM predictions for all test images
+    # -------------------------
+    # SVM Predictions
+    # -------------------------
     X_svm = []
     for img_path in test_images:
         img = cv2.imread(img_path)
@@ -171,29 +186,51 @@ with tab2:
                        orientations=9, block_norm='L2-Hys')
         X_svm.append(features)
     X_svm = scaler.transform(X_svm)
-    y_true = np.array(test_labels)
 
     y_pred_svm = svm_model.predict(X_svm)
+    acc_svm = accuracy_score(y_true, y_pred_svm)
+    st.metric("SVM Test Accuracy", f"{acc_svm*100:.2f}%")
 
-    # Confusion Matrix
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+    fig_svm, ax_svm = plt.subplots(figsize=(8,6))
+    sns.heatmap(confusion_matrix(y_true, y_pred_svm),
+                annot=True, fmt='d', cmap='Blues',
+                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax_svm)
+    ax_svm.set_xlabel("Predicted")
+    ax_svm.set_ylabel("True")
+    ax_svm.set_title("SVM Confusion Matrix")
+    st.pyplot(fig_svm)
 
-    acc = accuracy_score(y_true, y_pred_svm)
-    st.metric("SVM Test Accuracy", f"{acc*100:.2f}%")
+    st.write("#### SVM Classification Report")
+    report_svm = classification_report(y_true, y_pred_svm, target_names=EMOTION_LABELS, output_dict=True)
+    st.json(report_svm)
 
-    conf_mat = confusion_matrix(y_true, y_pred_svm)
-    fig, ax = plt.subplots(figsize=(8,6))
-    sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues',
-                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("True")
-    ax.set_title("SVM Confusion Matrix")
-    st.pyplot(fig)
+    # -------------------------
+    # CNN Predictions
+    # -------------------------
+    X_cnn = []
+    for img_path in test_images:
+        img = cv2.imread(img_path)
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        resized = cv2.resize(rgb, (IMG_SIZE_CNN, IMG_SIZE_CNN))
+        X_cnn.append(resized.astype(np.float32)/255.0)
+    X_cnn = np.array(X_cnn)
 
-    st.write("#### Classification Report")
-    report = classification_report(y_true, y_pred_svm, target_names=EMOTION_LABELS, output_dict=True)
-    st.json(report)
+    y_pred_cnn_probs = cnn_model.predict(X_cnn, verbose=0)
+    y_pred_cnn = np.argmax(y_pred_cnn_probs, axis=1)
+    acc_cnn = accuracy_score(y_true, y_pred_cnn)
+    st.metric("CNN Test Accuracy", f"{acc_cnn*100:.2f}%")
 
-    st.info("💡 This tab shows aggregated metrics and plots for all test images.")
+    fig_cnn, ax_cnn = plt.subplots(figsize=(8,6))
+    sns.heatmap(confusion_matrix(y_true, y_pred_cnn),
+                annot=True, fmt='d', cmap='Oranges',
+                xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax_cnn)
+    ax_cnn.set_xlabel("Predicted")
+    ax_cnn.set_ylabel("True")
+    ax_cnn.set_title("CNN Confusion Matrix")
+    st.pyplot(fig_cnn)
+
+    st.write("#### CNN Classification Report")
+    report_cnn = classification_report(y_true, y_pred_cnn, target_names=EMOTION_LABELS, output_dict=True)
+    st.json(report_cnn)
+
+    st.info("💡 Both CNN and SVM models are evaluated on the test set. Compare accuracy, confusion matrices, and classification reports.")
