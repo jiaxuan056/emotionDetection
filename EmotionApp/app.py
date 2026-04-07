@@ -29,17 +29,16 @@ EMOTION_LABELS = ["surprise", "fear", "disgust", "happy", "sad", "angry", "neutr
 
 @st.cache_resource(show_spinner=True)
 def load_models():
-    # Download CNN
     if not os.path.exists(CNN_FILE_NAME):
         gdown.download(f"https://drive.google.com/uc?id={CNN_FILE_ID}", CNN_FILE_NAME, quiet=False)
 
-    # Download SVM files
-    for file_id, file_name in zip([SVM_MODEL_ID, SCALER_ID, ENCODER_ID],
-                                  [SVM_MODEL_NAME, SCALER_NAME, ENCODER_NAME]):
+    for file_id, file_name in zip(
+        [SVM_MODEL_ID, SCALER_ID, ENCODER_ID],
+        [SVM_MODEL_NAME, SCALER_NAME, ENCODER_NAME]
+    ):
         if not os.path.exists(file_name):
             gdown.download(f"https://drive.google.com/uc?id={file_id}", file_name, quiet=False)
 
-    # Load models
     cnn_model = load_model(CNN_FILE_NAME)
     svm_model = joblib.load(SVM_MODEL_NAME)
     scaler = joblib.load(SCALER_NAME)
@@ -54,99 +53,84 @@ st.success("✅ Models loaded successfully!")
 # 2️⃣ App Layout
 # -------------------------
 st.title("😊 Emotion Detection Dashboard")
+
 tab1, tab2 = st.tabs(["🖼️ Predict Emotion", "📊 Analysis & Reports"])
-st.markdown(
-    "Upload or select an image from the dataset and detect emotion using CNN or HOG + SVM."
-)
 
-DATASET_PATH = "EmotionApp/dataset"
-emotion_category = st.selectbox("Select Emotion Folder", os.listdir(DATASET_PATH))
-category_path = os.path.join(DATASET_PATH, emotion_category)
+# =========================
+# TAB 1: PREDICTION ONLY
+# =========================
+with tab1:
+    st.markdown("Upload or select an image and detect emotion using CNN or HOG + SVM.")
 
-images_list = [f for f in os.listdir(category_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-selected_image_name = st.selectbox("Select Image", images_list)
-selected_image_path = os.path.join(category_path, selected_image_name)
+    DATASET_PATH = "EmotionApp/dataset"
+    emotion_category = st.selectbox("Select Emotion Folder", os.listdir(DATASET_PATH))
+    category_path = os.path.join(DATASET_PATH, emotion_category)
 
-image = Image.open(selected_image_path)
-st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)
+    images_list = [f for f in os.listdir(category_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    selected_image_name = st.selectbox("Select Image", images_list)
+    selected_image_path = os.path.join(category_path, selected_image_name)
 
-# -------------------------
-# 3️⃣ Preprocessing Functions
-# -------------------------
-def preprocess_cnn(img_path):
-    img = cv2.imread(img_path)
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    resized = cv2.resize(rgb, (IMG_SIZE_CNN, IMG_SIZE_CNN))
-    return np.expand_dims(resized.astype(np.float32)/255.0, axis=0)
-
-def preprocess_svm(img_path):
-    img = cv2.imread(img_path)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
-    features = hog(resized,
-                   pixels_per_cell=(8, 8),
-                   cells_per_block=(2, 2),
-                   orientations=9,
-                   block_norm='L2-Hys')
-    features_scaled = scaler.transform([features])
-    return features_scaled
-
-# -------------------------
-# 4️⃣ Prediction & Display
-# -------------------------
-if st.button("🚀 Predict Emotion"):
-
-    st.subheader("📌 Prediction Result")
-
-    # Prepare two columns for comparison
-    col1, col2 = st.columns(2)
+    image = Image.open(selected_image_path)
+    st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)
 
     # -------------------------
-    # CNN Prediction
+    # Preprocessing
     # -------------------------
-    with col1:
-        st.markdown("### 🧠 CNN Model Prediction")
-        input_cnn = preprocess_cnn(selected_image_path)
-        pred_cnn = cnn_model.predict(input_cnn, verbose=0)[0]
-        idx_cnn = np.argmax(pred_cnn)
-        label_cnn = EMOTION_LABELS[idx_cnn]
-        confidence_cnn = pred_cnn[idx_cnn] * 100
-        st.success(f"Predicted Emotion: {label_cnn} ({confidence_cnn:.2f}%)")
+    def preprocess_cnn(img_path):
+        img = cv2.imread(img_path)
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        resized = cv2.resize(rgb, (IMG_SIZE_CNN, IMG_SIZE_CNN))
+        return np.expand_dims(resized.astype(np.float32)/255.0, axis=0)
 
-        st.write("#### Emotion Probabilities (CNN)")
-        for i, em in enumerate(EMOTION_LABELS):
-            st.metric(em, f"{pred_cnn[i]*100:.2f}%")
-            st.progress(int(pred_cnn[i]*100))
+    def preprocess_svm(img_path):
+        img = cv2.imread(img_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
+        features = hog(resized,
+                       pixels_per_cell=(8, 8),
+                       cells_per_block=(2, 2),
+                       orientations=9,
+                       block_norm='L2-Hys')
+        return scaler.transform([features])
 
     # -------------------------
-    # SVM Prediction
+    # Prediction
     # -------------------------
-    with col2:
-        st.markdown("### 🧩 SVM Model Prediction")
-        input_svm = preprocess_svm(selected_image_path)
-        pred_svm_idx = svm_model.predict(input_svm)[0]
-        pred_svm_prob = svm_model.predict_proba(input_svm)[0]
-        label_svm = EMOTION_LABELS[pred_svm_idx]
-        confidence_svm = pred_svm_prob[pred_svm_idx] * 100
-        st.success(f"Predicted Emotion: {label_svm} ({confidence_svm:.2f}%)")
+    if st.button("🚀 Predict Emotion"):
 
-        st.write("#### Emotion Probabilities (SVM)")
-        for i, em in enumerate(EMOTION_LABELS):
-            st.metric(em, f"{pred_svm_prob[i]*100:.2f}%")
-            st.progress(int(pred_svm_prob[i]*100))
+        col1, col2 = st.columns(2)
 
-    st.divider()
-    st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
+        # CNN
+        with col1:
+            st.markdown("### 🧠 CNN Model")
+            input_cnn = preprocess_cnn(selected_image_path)
+            pred_cnn = cnn_model.predict(input_cnn, verbose=0)[0]
+            idx = np.argmax(pred_cnn)
+            st.success(f"{EMOTION_LABELS[idx]} ({pred_cnn[idx]*100:.2f}%)")
 
-# -------------------------
-# Tab 2: Reports (Improved)
-# -------------------------
+            for i, em in enumerate(EMOTION_LABELS):
+                st.metric(em, f"{pred_cnn[i]*100:.2f}%")
+                st.progress(int(pred_cnn[i]*100))
+
+        # SVM
+        with col2:
+            st.markdown("### 🧩 SVM Model")
+            input_svm = preprocess_svm(selected_image_path)
+            idx = svm_model.predict(input_svm)[0]
+            prob = svm_model.predict_proba(input_svm)[0]
+
+            st.success(f"{EMOTION_LABELS[idx]} ({prob[idx]*100:.2f}%)")
+
+            for i, em in enumerate(EMOTION_LABELS):
+                st.metric(em, f"{prob[i]*100:.2f}%")
+                st.progress(int(prob[i]*100))
+
+# =========================
+# TAB 2: REPORTS ONLY
+# =========================
 with tab2:
     st.subheader("📊 Model Performance & Reports")
 
-    # -------------------------
-    # Helper function
-    # -------------------------
     def download_image(file_id, filename):
         if not os.path.exists(filename):
             url = f"https://drive.google.com/uc?id={file_id}"
@@ -154,87 +138,27 @@ with tab2:
         return filename
 
     REPORT_IMAGES = {
-        "train_data_distribution": "1aKu4b1CKQYSHG58F_mLpYXQ3640WsuuB",
-        "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq",
-
-        "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
         "cnn_confusion_matrix": "1m7ObYYpsvQssSFThAtUQshxnYYy99ZlY",
+        "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
         "cnn_roc_curve": "1_R_EdEFpf7bKkMat_Sr3iIHSTlTsG3cm",
         "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
 
-        "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
         "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
+        "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
         "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
     }
 
-    # -------------------------
-    # Dataset Distribution (Top)
-    # -------------------------
-    st.markdown("### 📂 Dataset Overview")
+    subtab1, subtab2 = st.tabs(["🧠 CNN", "🧩 SVM"])
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        img = download_image(REPORT_IMAGES["train_data_distribution"], "train_data.png")
-        st.image(img, caption="Training Data Distribution", width=500)
-
-    with col2:
-        img = download_image(REPORT_IMAGES["train_test_distribution"], "train_test.png")
-        st.image(img, caption="Train vs Test Split", width=500)
-
-    st.divider()
-
-    # -------------------------
-    # Sub Tabs: CNN & SVM
-    # -------------------------
-    subtab1, subtab2 = st.tabs(["🧠 CNN Model", "🧩 SVM Model"])
-
-    # =========================
-    # CNN TAB
-    # =========================
+    # CNN
     with subtab1:
-        st.markdown("## 🧠 CNN Model Results")
+        st.image(download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png"), width=600)
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            img = download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png")
-            st.image(img, caption="CNN Confusion Matrix", width=550)
-
-        with col2:
-            img = download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png")
-            st.image(img, caption="CNN Classification Report", width=550)
-
-        col3, col4 = st.columns(2)
-
-        with col3:
-            img = download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png")
-            st.image(img, caption="CNN ROC Curve", width=550)
-
-        with col4:
-            img = download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png")
-            st.image(img, caption="CNN Training Curves", width=550)
-
-    # =========================
-    # SVM TAB
-    # =========================
+    # SVM
     with subtab2:
-        st.markdown("## 🧩 SVM Model Results")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            img = download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png")
-            st.image(img, caption="SVM Confusion Matrix", width=550)
-
-        with col2:
-            img = download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png")
-            st.image(img, caption="SVM Classification Report", width=550)
-
-        col3 = st.columns(1)[0]
-
-        with col3:
-            img = download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png")
-            st.image(img, caption="SVM ROC Curve", width=600)
-
-    st.info("💡 Switch between CNN and SVM tabs to compare model performance visually.")
+        st.image(download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png"), width=600)
