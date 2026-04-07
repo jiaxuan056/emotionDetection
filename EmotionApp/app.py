@@ -54,6 +54,7 @@ st.success("✅ Models loaded successfully!")
 # 2️⃣ App Layout
 # -------------------------
 st.title("😊 Emotion Detection Dashboard")
+tab1, tab2 = st.tabs(["🖼️ Predict Emotion", "📊 Analysis & Reports"])
 st.markdown(
     "Upload or select an image from the dataset and detect emotion using CNN or HOG + SVM."
 )
@@ -136,3 +137,97 @@ if st.button("🚀 Predict Emotion"):
 
     st.divider()
     st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
+
+# -------------------------
+# Tab 2: Reports (Images from Google Drive)
+# -------------------------
+with tab2:
+    st.subheader("📊 Model Performance & Reports")
+
+    # -------------------------
+    # Helper function
+    # -------------------------
+    def download_image(file_id, filename):
+        if not os.path.exists(filename):
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, filename, quiet=False)
+        return filename
+
+    REPORT_IMAGES = {
+        "train_data_distribution": "1aKu4b1CKQYSHG58F_mLpYXQ3640WsuuB",
+        "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq",
+        "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
+        "cnn_confusion_matrix": "1m7ObYYpsvQssSFThAtUQshxnYYy99ZlY",
+        "cnn_roc_curve": "1_R_EdEFpf7bKkMat_Sr3iIHSTlTsG3cm",
+        "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
+        "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
+        "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
+        "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
+    }
+
+    # -------------------------
+    # Dataset Distribution
+    # -------------------------
+    st.markdown("### 📂 Dataset Distribution")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        img = download_image(REPORT_IMAGES["train_data_distribution"], "train_data.png")
+        st.image(img, caption="Training Data Distribution", width=400)
+
+    with col2:
+        img = download_image(REPORT_IMAGES["train_test_distribution"], "train_test.png")
+        st.image(img, caption="Train vs Test Split", width=400)
+
+    st.divider()
+
+    # -------------------------
+    # CNN Section
+    # -------------------------
+    st.markdown("## 🧠 CNN Model Results")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        img = download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png")
+        st.image(img, caption="CNN Confusion Matrix", width=400)
+
+    with col2:
+        img = download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png")
+        st.image(img, caption="CNN Classification Report", width=400)
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        img = download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png")
+        st.image(img, caption="CNN ROC Curve", width=400)
+
+    with col4:
+        img = download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png")
+        st.image(img, caption="CNN Training Curves", width=400)
+
+    st.divider()
+
+    # -------------------------
+    # SVM Section
+    # -------------------------
+    st.markdown("## 🧩 SVM Model Results")
+
+    col5, col6 = st.columns(2)
+
+    with col5:
+        img = download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png")
+        st.image(img, caption="SVM Confusion Matrix", width=400)
+
+    with col6:
+        img = download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png")
+        st.image(img, caption="SVM Classification Report", width=400)
+
+    col7 = st.columns(1)[0]
+
+    with col7:
+        img = download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png")
+        st.image(img, caption="SVM ROC Curve", width=500)
+
+    st.info("💡 These are pre-generated evaluation results from your trained models.")
