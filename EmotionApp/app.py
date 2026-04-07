@@ -139,7 +139,7 @@ if st.button("🚀 Predict Emotion"):
     st.info("💡 Both models show prediction probabilities. Compare CNN vs SVM confidence levels.")
 
 # -------------------------
-# Tab 2: Reports (Images from Google Drive)
+# Tab 2: Reports (Improved)
 # -------------------------
 with tab2:
     st.subheader("📊 Model Performance & Reports")
@@ -156,78 +156,85 @@ with tab2:
     REPORT_IMAGES = {
         "train_data_distribution": "1aKu4b1CKQYSHG58F_mLpYXQ3640WsuuB",
         "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq",
+
         "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
         "cnn_confusion_matrix": "1m7ObYYpsvQssSFThAtUQshxnYYy99ZlY",
         "cnn_roc_curve": "1_R_EdEFpf7bKkMat_Sr3iIHSTlTsG3cm",
         "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
+
         "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
         "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
         "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
     }
 
     # -------------------------
-    # Dataset Distribution
+    # Dataset Distribution (Top)
     # -------------------------
-    st.markdown("### 📂 Dataset Distribution")
+    st.markdown("### 📂 Dataset Overview")
 
     col1, col2 = st.columns(2)
 
     with col1:
         img = download_image(REPORT_IMAGES["train_data_distribution"], "train_data.png")
-        st.image(img, caption="Training Data Distribution", width=400)
+        st.image(img, caption="Training Data Distribution", width=500)
 
     with col2:
         img = download_image(REPORT_IMAGES["train_test_distribution"], "train_test.png")
-        st.image(img, caption="Train vs Test Split", width=400)
+        st.image(img, caption="Train vs Test Split", width=500)
 
     st.divider()
 
     # -------------------------
-    # CNN Section
+    # Sub Tabs: CNN & SVM
     # -------------------------
-    st.markdown("## 🧠 CNN Model Results")
+    subtab1, subtab2 = st.tabs(["🧠 CNN Model", "🧩 SVM Model"])
 
-    col1, col2 = st.columns(2)
+    # =========================
+    # CNN TAB
+    # =========================
+    with subtab1:
+        st.markdown("## 🧠 CNN Model Results")
 
-    with col1:
-        img = download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png")
-        st.image(img, caption="CNN Confusion Matrix", width=400)
+        col1, col2 = st.columns(2)
 
-    with col2:
-        img = download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png")
-        st.image(img, caption="CNN Classification Report", width=400)
+        with col1:
+            img = download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png")
+            st.image(img, caption="CNN Confusion Matrix", width=550)
 
-    col3, col4 = st.columns(2)
+        with col2:
+            img = download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png")
+            st.image(img, caption="CNN Classification Report", width=550)
 
-    with col3:
-        img = download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png")
-        st.image(img, caption="CNN ROC Curve", width=400)
+        col3, col4 = st.columns(2)
 
-    with col4:
-        img = download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png")
-        st.image(img, caption="CNN Training Curves", width=400)
+        with col3:
+            img = download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png")
+            st.image(img, caption="CNN ROC Curve", width=550)
 
-    st.divider()
+        with col4:
+            img = download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png")
+            st.image(img, caption="CNN Training Curves", width=550)
 
-    # -------------------------
-    # SVM Section
-    # -------------------------
-    st.markdown("## 🧩 SVM Model Results")
+    # =========================
+    # SVM TAB
+    # =========================
+    with subtab2:
+        st.markdown("## 🧩 SVM Model Results")
 
-    col5, col6 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-    with col5:
-        img = download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png")
-        st.image(img, caption="SVM Confusion Matrix", width=400)
+        with col1:
+            img = download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png")
+            st.image(img, caption="SVM Confusion Matrix", width=550)
 
-    with col6:
-        img = download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png")
-        st.image(img, caption="SVM Classification Report", width=400)
+        with col2:
+            img = download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png")
+            st.image(img, caption="SVM Classification Report", width=550)
 
-    col7 = st.columns(1)[0]
+        col3 = st.columns(1)[0]
 
-    with col7:
-        img = download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png")
-        st.image(img, caption="SVM ROC Curve", width=500)
+        with col3:
+            img = download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png")
+            st.image(img, caption="SVM ROC Curve", width=600)
 
-    st.info("💡 These are pre-generated evaluation results from your trained models.")
+    st.info("💡 Switch between CNN and SVM tabs to compare model performance visually.")
