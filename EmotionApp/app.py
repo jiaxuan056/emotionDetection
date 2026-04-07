@@ -20,6 +20,18 @@ SCALER_ID = "1llZiJ8z-uDJE7L9UB6xv3nqe4irKHPBN"
 ENCODER_ID = "1AWE9JbAl-Z7DtrwDV4oCRWOtjvOstFMU"
 TRAIN_FOLDER_ID = "1uIHJ8vWI3KDMChvWnFZK3ZfxtAV_Y8Tf"
 
+REPORT_IMAGES = {
+    "train_data_distribution": "1aKu4b1CKQYSHG58F_mLpYXQ3640WsuuB",
+    "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq",
+    "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
+    "cnn_confusion_matrix": "1m7ObYYpsvQssSFThAtUQshxnYYy99ZlY",
+    "cnn_roc_curve": "1_R_EdEFpf7bKkMat_Sr3iIHSTlTsG3cm",
+    "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
+    "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
+    "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
+    "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
+}
+
 CNN_FILE_NAME = "best_CNNModel.h5"
 SVM_MODEL_NAME = "svm_emotion_model.pkl"
 SCALER_NAME = "scaler.pkl"
@@ -51,6 +63,12 @@ def load_models():
         return TRAIN_FOLDER_NAME
     
     BASE = download_train_images()
+
+    def download_image(file_id, filename):
+    if not os.path.exists(filename):
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, filename, quiet=False)
+    return filename
 
     # Load models
     cnn_model = load_model(CNN_FILE_NAME)
@@ -153,91 +171,64 @@ with tab1:
 # 4️⃣ Tab 2: Analysis & Reports (CNN + SVM)
 # -------------------------
 with tab2:
-    st.subheader("📊 Model Performance & Confusion Matrices")
+    st.subheader("📊 Model Performance & Reports")
 
-    # Load images from Google Drive folder "trainKaggle"
-    NUM_FOLDER_TO_LABEL = {
-        "1": "surprise",
-        "2": "fear",
-        "3": "disgust",
-        "4": "happy",
-        "5": "sad",
-        "6": "angry",
-        "7": "neutral"
-    }
+    st.markdown("### 📂 Dataset Distribution")
 
-    test_images, test_labels = [], []
+    col1, col2 = st.columns(2)
 
-    for folder_name, label_name in NUM_FOLDER_TO_LABEL.items():
-        folder_path = os.path.join(TRAIN_FOLDER_NAME, folder_name)
-        if not os.path.exists(folder_path):
-            st.warning(f"Folder {folder_path} not found!")
-            continue
-        for img_file in os.listdir(folder_path):
-            if img_file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                img_path = os.path.join(folder_path, img_file)
-                test_images.append(img_path)
-                test_labels.append(EMOTION_LABELS.index(label_name))
+    with col1:
+        img_path = download_image(REPORT_IMAGES["train_data_distribution"], "train_data.png")
+        st.image(img_path, caption="Training Data Distribution", use_column_width=True)
 
-    st.write(f"Total images loaded for evaluation: {len(test_images)}")
+    with col2:
+        img_path = download_image(REPORT_IMAGES["train_test_distribution"], "train_test.png")
+        st.image(img_path, caption="Train vs Test Split", use_column_width=True)
 
-    if len(test_images) == 0:
-        st.warning("⚠️ No images found. Check your folder structure or Google Drive link!")
-    else:
-        y_true = np.array(test_labels)
+    st.divider()
 
-        # ---------------- CNN Predictions ----------------
-        def preprocess_cnn(img_path):
-            img = cv2.imread(img_path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (IMG_SIZE_CNN, IMG_SIZE_CNN))
-            return np.expand_dims(img.astype(np.float32)/255.0, axis=0)
+    # ---------------- CNN ----------------
+    st.markdown("## 🧠 CNN Model Reports")
 
-        X_cnn = np.array([preprocess_cnn(p)[0] for p in test_images])
-        y_pred_cnn_probs = cnn_model.predict(X_cnn, verbose=0)
-        y_pred_cnn = np.argmax(y_pred_cnn_probs, axis=1)
-        acc_cnn = accuracy_score(y_true, y_pred_cnn)
-        st.metric("CNN Accuracy", f"{acc_cnn*100:.2f}%")
+    col1, col2 = st.columns(2)
 
-        conf_mat_cnn = confusion_matrix(y_true, y_pred_cnn)
-        fig, ax = plt.subplots(figsize=(8,6))
-        sns.heatmap(conf_mat_cnn, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("True")
-        ax.set_title("CNN Confusion Matrix")
-        st.pyplot(fig)
+    with col1:
+        img_path = download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png")
+        st.image(img_path, caption="CNN Confusion Matrix", use_column_width=True)
 
-        st.write("#### CNN Classification Report")
-        report_cnn = classification_report(y_true, y_pred_cnn, target_names=EMOTION_LABELS, output_dict=True)
-        st.json(report_cnn)
+    with col2:
+        img_path = download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png")
+        st.image(img_path, caption="CNN Classification Report", use_column_width=True)
 
-        # ---------------- SVM Predictions ----------------
-        def preprocess_svm(img_path):
-            img = cv2.imread(img_path)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            resized = cv2.resize(gray, (IMG_SIZE_SVM, IMG_SIZE_SVM))
-            features = hog(resized, pixels_per_cell=(8,8), cells_per_block=(2,2),
-                           orientations=9, block_norm='L2-Hys')
-            features_scaled = scaler.transform([features])
-            return features_scaled
+    col3, col4 = st.columns(2)
 
-        X_svm = np.array([preprocess_svm(p) for p in test_images]).reshape(len(test_images), -1)
-        y_pred_svm = svm_model.predict(X_svm)
-        acc_svm = accuracy_score(y_true, y_pred_svm)
-        st.metric("SVM Accuracy", f"{acc_svm*100:.2f}%")
+    with col3:
+        img_path = download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png")
+        st.image(img_path, caption="CNN ROC Curve", use_column_width=True)
 
-        conf_mat_svm = confusion_matrix(y_true, y_pred_svm)
-        fig, ax = plt.subplots(figsize=(8,6))
-        sns.heatmap(conf_mat_svm, annot=True, fmt='d', cmap='Greens',
-                    xticklabels=EMOTION_LABELS, yticklabels=EMOTION_LABELS, ax=ax)
-        ax.set_xlabel("Predicted")
-        ax.set_ylabel("True")
-        ax.set_title("SVM Confusion Matrix")
-        st.pyplot(fig)
+    with col4:
+        img_path = download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png")
+        st.image(img_path, caption="CNN Training Curves", use_column_width=True)
 
-        st.write("#### SVM Classification Report")
-        report_svm = classification_report(y_true, y_pred_svm, target_names=EMOTION_LABELS, output_dict=True)
-        st.json(report_svm)
+    st.divider()
 
-        st.info("💡 This tab shows CNN and SVM aggregated metrics, confusion matrices, and classification reports.")
+    # ---------------- SVM ----------------
+    st.markdown("## 🧩 SVM Model Reports")
+
+    col5, col6 = st.columns(2)
+
+    with col5:
+        img_path = download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png")
+        st.image(img_path, caption="SVM Confusion Matrix", use_column_width=True)
+
+    with col6:
+        img_path = download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png")
+        st.image(img_path, caption="SVM Classification Report", use_column_width=True)
+
+    col7 = st.columns(1)[0]
+
+    with col7:
+        img_path = download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png")
+        st.image(img_path, caption="SVM ROC Curve", use_column_width=True)
+
+    st.info("💡 These are pre-generated evaluation results from your trained models.")
