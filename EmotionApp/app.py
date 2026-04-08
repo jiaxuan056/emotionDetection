@@ -138,6 +138,7 @@ with tab2:
         return filename
 
     REPORT_IMAGES = {
+        "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq"
         "cnn_confusion_matrix": "1m-A89sj3d-wYgisybaQ0ro3ayzrbK5sN",
         "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
         "cnn_roc_curve": "17_tHKJ2Qfr_iBQCo9DxhD4ODvdmFqyZd",
@@ -147,7 +148,7 @@ with tab2:
         "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
         "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
     }
-
+    st.image(download_image(REPORT_IMAGES["train_test_distribution"], "test_distribution.png"), width=600)
     subtab1, subtab2 = st.tabs(["🧠 CNN", "🧩 SVM"])
 
     # CNN
