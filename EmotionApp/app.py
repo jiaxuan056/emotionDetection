@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import gdown
 import joblib
@@ -9,9 +8,6 @@ import os
 from PIL import Image
 from skimage.feature import hog
 
-# -------------------------
-# 1️⃣ Download & Load Models
-# -------------------------
 CNN_FILE_ID = "1QVCR7tt7NFmZvMYkphjH3eOsVaaDgD7w"
 SVM_MODEL_ID = "1jpJ2HwviM6PX91RHX81GjQynu_Pqy-Cm"
 SCALER_ID = "1llZiJ8z-uDJE7L9UB6xv3nqe4irKHPBN"
@@ -49,16 +45,10 @@ def load_models():
 cnn_model, svm_model, scaler, label_encoder = load_models()
 st.success("✅ Models loaded successfully!")
 
-# -------------------------
-# 2️⃣ App Layout
-# -------------------------
 st.title("😊 Emotion Detection Dashboard")
 
 tab1, tab2 = st.tabs(["🖼️ Predict Emotion", "📊 Analysis & Reports"])
 
-# =========================
-# TAB 1: PREDICTION ONLY
-# =========================
 with tab1:
     st.markdown("Upload or select an image and detect emotion using CNN or HOG + SVM.")
 
@@ -73,9 +63,6 @@ with tab1:
     image = Image.open(selected_image_path)
     st.image(image, caption=f"Selected Image: {selected_image_name}", width=300)
 
-    # -------------------------
-    # Preprocessing
-    # -------------------------
     def preprocess_cnn(img_path):
         img = cv2.imread(img_path)
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -93,9 +80,6 @@ with tab1:
                        block_norm='L2-Hys')
         return scaler.transform([features])
 
-    # -------------------------
-    # Prediction
-    # -------------------------
     if st.button("🚀 Predict Emotion"):
 
         col1, col2 = st.columns(2)
@@ -125,9 +109,6 @@ with tab1:
                 st.metric(em, f"{prob[i]*100:.2f}%")
                 st.progress(int(prob[i]*100))
 
-# =========================
-# TAB 2: REPORTS ONLY
-# =========================
 with tab2:
     st.subheader("📊 Model Performance & Reports")
 
