@@ -138,9 +138,9 @@ with tab2:
         return filename
 
     REPORT_IMAGES = {
-        "cnn_confusion_matrix": "1m7ObYYpsvQssSFThAtUQshxnYYy99ZlY",
+        "cnn_confusion_matrix": "1m-A89sj3d-wYgisybaQ0ro3ayzrbK5sN",
         "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
-        "cnn_roc_curve": "1_R_EdEFpf7bKkMat_Sr3iIHSTlTsG3cm",
+        "cnn_roc_curve": "17_tHKJ2Qfr_iBQCo9DxhD4ODvdmFqyZd",
         "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
 
         "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
