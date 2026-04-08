@@ -154,12 +154,12 @@ with tab2:
     # CNN
     with subtab1:
         st.image(download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png"), width=600)
-        st.image(download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png"), width=600)
         st.image(download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png"), width=600)
         st.image(download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png"), width=600)
 
     # SVM
     with subtab2:
-        st.image(download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png"), width=600)
         st.image(download_image(REPORT_IMAGES["svm_classification_report"], "svm_report.png"), width=600)
+        st.image(download_image(REPORT_IMAGES["svm_confusion_matrix"], "svm_cm.png"), width=600)
         st.image(download_image(REPORT_IMAGES["svm_roc_curve"], "svm_roc.png"), width=600)
