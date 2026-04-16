@@ -163,7 +163,7 @@ with tab2:
     REPORT_IMAGES = {
         "train_test_distribution": "1e7m6yyHLGrolzW2_suH21j1-K78KBtnq",
         "cnn_confusion_matrix": "1m-A89sj3d-wYgisybaQ0ro3ayzrbK5sN",
-        "cnn_classification_report": "1rMJshBnOjWaRBZTJsvEsi641jIm0g6iZ",
+        "cnn_classification_report": "1idpbm8eiz_nszYFH-kChEzbUt7iYJzPO",
         "cnn_roc_curve": "17_tHKJ2Qfr_iBQCo9DxhD4ODvdmFqyZd",
         "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
         "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
