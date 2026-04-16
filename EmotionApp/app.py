@@ -165,7 +165,6 @@ with tab2:
         "cnn_confusion_matrix": "1m-A89sj3d-wYgisybaQ0ro3ayzrbK5sN",
         "cnn_classification_report": "1idpbm8eiz_nszYFH-kChEzbUt7iYJzPO",
         "cnn_roc_curve": "17_tHKJ2Qfr_iBQCo9DxhD4ODvdmFqyZd",
-        "cnn_training_curves": "1M2i3z9WCWofiqykqRyw0e6ifOd-wQ2GU",
         "svm_confusion_matrix": "1yfbRJ0RpyOlDOydmjYiTC2_7po6wMKxe",
         "svm_classification_report": "1EZ0tlzAE1_prShfmmzwPwDEXhgbArQSO",
         "svm_roc_curve": "1srjkWyUgdQuE0hHXYsVUNrvQqtHQWs50"
@@ -176,7 +175,6 @@ with tab2:
     subtab1, subtab2 = st.tabs(["CNN", "SVM"])
 
     with subtab1:
-        st.image(download_image(REPORT_IMAGES["cnn_training_curves"], "cnn_train.png"), width=600)
         st.image(download_image(REPORT_IMAGES["cnn_classification_report"], "cnn_report.png"), width=600)
         st.image(download_image(REPORT_IMAGES["cnn_confusion_matrix"], "cnn_cm.png"), width=600)
         st.image(download_image(REPORT_IMAGES["cnn_roc_curve"], "cnn_roc.png"), width=600)
